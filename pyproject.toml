@@ -1,0 +1,21 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "bitcoinshamir"
+version = "00.00.01"
+authors = [
+    { name="Tyler Pantuso", email="tylerpantuso@gmail.com" },
+]
+description = "A python implementation of the Shamir Secret Sharing scheme for BIP39 mneumonic phrases."
+readme = "README.md"
+requires-python = ">3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/TylerPantuso/"

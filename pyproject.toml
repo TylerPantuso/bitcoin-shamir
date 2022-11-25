@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "bitcoinshamir"
-version = "00.00.01"
+version = "00.00.02"
 authors = [
     { name="Tyler Pantuso", email="tylerpantuso@gmail.com" },
 ]
@@ -18,4 +18,4 @@ classifiers = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/TylerPantuso/"
+"Homepage" = "https://github.com/TylerPantuso/bitcoin-shamir"

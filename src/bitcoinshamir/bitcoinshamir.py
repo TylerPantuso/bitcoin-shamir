@@ -7,8 +7,6 @@ from typing import List
 # which is 256 bits, plus an 8-bit checksum.
 PRIME_MODULUS = 2 ** 256 - 2 ** 32 - 977
 
-# BIP39_WORDLIST = _get_bip39_wordlist()
-
 
 class Point:
     """

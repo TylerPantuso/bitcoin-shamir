@@ -1,4 +1,5 @@
 import os
+from typing import List
 
 class BIP39_List:
     """
@@ -66,31 +67,41 @@ class BIP39_List:
             self.Spanish = [line.strip() for line in f.readlines()]
 
 
-    def get_language(self, word: str) -> str:
+    def get_language(self, word: str) -> List[str]:
         """
         Searches each word list for the given word and returns the string
-        name of the language. If the word is not found, a ValueError exception
-        is raised.
+        name of each language that contains the given word.
         """
+        languages = []
+
         if word in self.ChineseSimplified:
-            return "chinese_simplified"
-        elif word in self.ChineseTraditional:
-            return "chinese_traditional"
-        elif word in self.Czech:
-            return "czech"
-        elif word in self.English:
-            return "english"
-        elif word in self.French:
-            return "french"
-        elif word in self.Italian:
-            return "italian"
-        elif word in self.Japanese:
-            return "japanese"
-        elif word in self.Korean:
-            return "korean"
-        elif word in self.Portuguese:
-            return "portuguese"
-        elif word in self.Spanish:
-            return "spanish"
-        else:
-            raise ValueError(f"{word} is not in any current word list.")
+            languages.append("chinese_simplified")
+
+        if word in self.ChineseTraditional:
+            languages.append("chinese_traditional")
+
+        if word in self.Czech:
+            languages.append("czech")
+
+        if word in self.English:
+            languages.append("english")
+
+        if word in self.French:
+            languages.append("french")
+
+        if word in self.Italian:
+            languages.append("italian")
+
+        if word in self.Japanese:
+            languages.append("japanese")
+
+        if word in self.Korean:
+            languages.append("korean")
+
+        if word in self.Portuguese:
+            languages.append("portuguese")
+
+        if word in self.Spanish:
+            languages.append("spanish")
+
+        return languages

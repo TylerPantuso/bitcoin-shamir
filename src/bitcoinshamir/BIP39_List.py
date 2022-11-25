@@ -36,34 +36,34 @@ class BIP39_List:
         spanish_path = os.path.join(folder, "spanish.txt")
 
         with open(chinese_simp_path, "r") as f:
-            self.ChineseSimplified = [line.strip() for line in f.Readlines()]
+            self.ChineseSimplified = [line.strip() for line in f.readlines()]
 
         with open(chinese_trad_path, "r") as f:
-            self.ChineseTraditional = [line.strip() for line in f.Readlines()]
+            self.ChineseTraditional = [line.strip() for line in f.readlines()]
 
         with open(czech_path, "r") as f:
-            self.Czech = [line.strip() for line in f.Readlines()]
+            self.Czech = [line.strip() for line in f.readlines()]
 
         with open(english_path, "r") as f:
-            self.English = [line.strip() for line in f.Readlines()]
+            self.English = [line.strip() for line in f.readlines()]
 
         with open(french_path, "r") as f:
-            self.French = [line.strip() for line in f.Readlines()]
+            self.French = [line.strip() for line in f.readlines()]
 
         with open(italian_path, "r") as f:
-            self.Italian = [line.strip() for line in f.Readlines()]
+            self.Italian = [line.strip() for line in f.readlines()]
 
         with open(japanese_path, "r") as f:
-            self.Japanese = [line.strip() for line in f.Readlines()]
+            self.Japanese = [line.strip() for line in f.readlines()]
 
         with open(korean_path, "r") as f:
-            self.Korean = [line.strip() for line in f.Readlines()]
+            self.Korean = [line.strip() for line in f.readlines()]
 
         with open(portuguese_path, "r") as f:
-            self.Portuguese = [line.strip() for line in f.Readlines()]
+            self.Portuguese = [line.strip() for line in f.readlines()]
 
         with open(spanish_path, "r") as f:
-            self.Spanish = [line.strip() for line in f.Readlines()]
+            self.Spanish = [line.strip() for line in f.readlines()]
 
 
     def get_language(self, word: str) -> str:

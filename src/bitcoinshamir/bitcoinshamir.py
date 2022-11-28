@@ -45,10 +45,6 @@ class Polynomial:
         
         return result
 
-# TODO: Create new class for storing word lists.
-# def _get_bip39_wordlist() -> List[str]:
-#     with open()
-
 
 def create_shares(threshold: int, sharecount: int, key: bytes) -> List[Point]:
     """
@@ -62,9 +58,9 @@ def create_shares(threshold: int, sharecount: int, key: bytes) -> List[Point]:
     key_num = int.from_bytes(key, "big")
     polynomial = Polynomial(key_num)
 
-    # Add random coefficients.
+    # Add random 240-bit coefficients.
     for i in range(threshold - 1):
-        random_coefficient = int.from_bytes(os.urandom(32), "big")
+        random_coefficient = int.from_bytes(os.urandom(30), "big")
         polynomial.coefficients.append(random_coefficient)
 
     # Create shares based on x = 1, x = 2, ... x = (k - 1)
@@ -76,7 +72,6 @@ def create_shares(threshold: int, sharecount: int, key: bytes) -> List[Point]:
         point.Y = polynomial.solve(point.X)
         shares.append(point)
 
-    # Return List(Point) object containing the shares.
     return shares
 
 

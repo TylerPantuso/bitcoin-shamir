@@ -146,7 +146,7 @@ class BIP39_List:
         if language not in self.LANGUAGE_LIST:
             raise ValueError(f"{language} is not in the current language list.")
 
-        if index is not type(int):
+        if not isinstance(index, int):
             raise TypeError("The given index argument was not of type int.")
 
         if index > 2047 or index < 0:

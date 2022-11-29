@@ -86,14 +86,17 @@ class Share:
 
         # The threshold and X value are the next 8 bits. These values still have
         # an xor of the final checksum applied, which will need to be removed.
-        threshold_x_xor = int(bin_text[248:256], base=2).to_bytes(1, "big")
+        threshold_x_xor_int = int(bin_text[248:256], base=2)
+        threshold_x_xor = threshold_x_xor_int.to_bytes(1, "big")
 
         # The final checksum is the last 8 bits.
-        hash_byte = int(bin_text[256:264], base=2).to_bytes(1, "big")
+        hash_int = int(bin_text[256:264], base=2)
+        hash_byte = hash_int.to_bytes(1, "big")
 
         # Remove xor from threshold and X value
-        threshold_x = threshold_x_xor ^ hash_byte
-        threshold_x_bin_text = format(int.from_bytes(threshold_x, "big"), "08b")
+
+        threshold_x = threshold_x_xor_int ^ hash_int
+        threshold_x_bin_text = format(threshold_x, "08b")
 
         # The first 3 bits are the threshold. The threshold starts with a value
         # of 2, encoded as 0, so the threshold is 2 plus the encoded value.
@@ -113,20 +116,24 @@ class Share:
         y_bin = self.Y.to_bytes(30, "big")
 
         # The X value starts at 1, which is encoded as 0.
-        x_bin = (self.X - 1).to_bytes(1, "big")
+        x_int = self.X - 1
+        x_bin = x_int.to_bytes(1, "big")
 
         # The threshold starts at 2, which is encoded as 0.
-        threshold_bin = (self.threshold - 2).to_bytes(1, "big")
+        threshold_int = self.threshold - 2
+        threshold_bin = threshold_int.to_bytes(1, "big")
 
-        threshold_x_string = format(threshold_bin, "03b") + format(x_bin, "05b")
-        threshold_x_bin = int(threshold_x_string, base=2).to_bytes(1, "big")
+        threshold_x_string = f"{threshold_int:03b}{x_int:05b}"
+        threshold_x_int = int(threshold_x_string, base=2)
+        threshold_x_bin = threshold_x_int.to_bytes(1, "big")
 
         initial_bin = y_bin + self.seed_checksum + threshold_x_bin
         hash_byte = sha256(initial_bin).digest()[:1]
 
-        threshold_x_xor = threshold_x_bin ^ hash_byte
+        threshold_x_xor = threshold_x_int ^ int.from_bytes(hash_byte, "big")
+        threshold_x_xor_bin = threshold_x_xor.to_bytes(1, "big")
 
-        return y_bin + self.seed_checksum + threshold_x_xor + hash_byte
+        return y_bin + self.seed_checksum + threshold_x_xor_bin + hash_byte
 
 
     def is_valid(self) -> bool:

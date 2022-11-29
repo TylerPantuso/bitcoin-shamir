@@ -45,7 +45,7 @@ class Mnemonic:
         seed_bin_text = format(seed_num, "0264b")
 
         # Switch out the bits for the given word argument.
-        word_index = int(word_bin_text, base=2)
+        word_index = wordlist.get_word_index(word, self.language)
         word_bin_text = format(word_index, "011b")
         char_count_left = index * 11 - 1
         char_right_position = (index + 1) * 11

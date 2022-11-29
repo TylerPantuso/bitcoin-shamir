@@ -117,11 +117,9 @@ class Share:
 
         # The X value starts at 1, which is encoded as 0.
         x_int = self.X - 1
-        x_bin = x_int.to_bytes(1, "big")
 
         # The threshold starts at 2, which is encoded as 0.
         threshold_int = self.threshold - 2
-        threshold_bin = threshold_int.to_bytes(1, "big")
 
         threshold_x_string = f"{threshold_int:03b}{x_int:05b}"
         threshold_x_int = int(threshold_x_string, base=2)

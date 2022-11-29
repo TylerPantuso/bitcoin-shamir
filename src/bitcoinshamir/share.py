@@ -74,8 +74,8 @@ class Share:
             if language not in wordlist.get_language(word):
                 raise ValueError(f"\"{word}\" not in {language} word list.")
 
-        word_indices = [wordlist.get_word_index(word) for word in phrase]
-        bin_text_chunks = [format(index, "011b") for index in word_indices]
+        indices = [wordlist.get_word_index(word, language) for word in phrase]
+        bin_text_chunks = [format(index, "011b") for index in indices]
         bin_text = "".join(bin_text_chunks)
 
         # The Y value is the first 240 bits.

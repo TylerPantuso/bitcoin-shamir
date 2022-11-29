@@ -137,7 +137,7 @@ class BIP39_List:
             raise ValueError(f"{language} is not in the current language list.")
 
 
-    def get_word(self, language: str, index: int) -> str:
+    def get_word(self, index: str, language: int) -> str:
         """
         Gets the word based on the given language and zero-based index of the
         word. Raises an error if the language is not in the current language
@@ -155,7 +155,7 @@ class BIP39_List:
         return self.get_word_list(language)[index]
 
 
-    def get_word_index(self, language: str, word: str) -> int:
+    def get_word_index(self, word: str, language: str) -> int:
         """
         Gets the index of the given word from the given language. Raises an
         error if the language is not in the current language list or if the word

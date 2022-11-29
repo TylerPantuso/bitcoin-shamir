@@ -40,7 +40,27 @@ class Mnemonic:
         if self.language not in wordlist.get_language(word):
             raise ValueError(f"{word} not found in {self.language} list.")
 
-        bin_text = bin(int.from_bytes(self.seed, "big"))[2:]
+        # Convert the seed into binary text.
+        seed_num = int.from_bytes(self.seed, "big")
+        seed_bin_text = format(seed_num, "0264b")
+
+        # Switch out the bits for the given word argument.
+        word_index = int(word_bin_text, base=2)
+        word_bin_text = format(word_index, "011b")
+        char_count_left = index * 11 - 1
+        char_right_position = (index + 1) * 11
+
+        bin_text_left = seed_bin_text[:char_count_left]
+        bin_text_right = seed_bin_text[char_right_position:]
+        new_seed_bin_text = bin_text_left + word_bin_text + bin_text_right
+        new_seed_bin = int(new_seed_bin_text, base=2).to_bytes(33, "big")
+
+        # Recalculate the checksum if the last word, which contains the
+        # checksum, is not the word being set.
+        if index != 23:
+            new_seed_word_section = new_seed_bin[:32]
+            checksum = hashlib.sha256(new_seed_word_section)[:1]
+            new_seed_bin = new_seed_word_section + checksum
 
 
     def is_valid_phrase(phrase: List[str], language: str) -> bool:
@@ -60,8 +80,8 @@ class Mnemonic:
         if not is_valid_wordcount or not has_valid_words:
             return False
 
-        word_indices = [wordlist.get_word_index(word) for word in phrase]
-        bin_text_chunks = [format(index, "011b") for index in word_indices]
+        indices = [wordlist.get_word_index(word, language) for word in phrase]
+        bin_text_chunks = [format(index, "011b") for index in indices]
         bin_text = "".join(bin_text_chunks)
 
         # The seed is the first 256 bits. The checksum is the last 8 bits.

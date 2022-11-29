@@ -86,7 +86,7 @@ class Share:
 
         # The threshold and X value are the next 8 bits. These values still have
         # an xor of the final checksum applied, which will need to be removed.
-        threshold_x_xor = int(bin_text[248:256]).to_bytes(1, "big")
+        threshold_x_xor = int(bin_text[248:256], base=2).to_bytes(1, "big")
 
         # The final checksum is the last 8 bits.
         hash_byte = int(bin_text[256:264], base=2).to_bytes(1, "big")

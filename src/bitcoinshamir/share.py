@@ -1,6 +1,6 @@
 from .BIP39_List import BIP39_List
 from typing import List
-import hashlib
+from hashlib import sha256
 
 wordlist = BIP39_List()
 
@@ -122,7 +122,7 @@ class Share:
         threshold_x_bin = int(threshold_x_string, base=2).to_bytes(1, "big")
 
         initial_bin = y_bin + self.seed_checksum + threshold_x_bin
-        hash_byte = hashlib.sha256(initial_bin).digest()[:1]
+        hash_byte = sha256(initial_bin).digest()[:1]
 
         threshold_x_xor = threshold_x_bin ^ hash_byte
 

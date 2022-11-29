@@ -1,5 +1,5 @@
 from .BIP39_List import BIP39_List
-import hashlib
+from hashlib import sha256
 from typing import List
 
 wordlist = BIP39_List()
@@ -59,7 +59,7 @@ class Mnemonic:
         # checksum, is not the word being set.
         if index != 23:
             new_seed_word_section = new_seed_bin[:32]
-            checksum = hashlib.sha256(new_seed_word_section)[:1]
+            checksum = sha256(new_seed_word_section)[:1]
             new_seed_bin = new_seed_word_section + checksum
 
 
@@ -90,7 +90,7 @@ class Mnemonic:
 
         # The checksum is the first byte of the sha256 hash of the prior 32
         # bytes.
-        recalculated_checksum = hashlib.sha256(seed_val).digest()[:1]
+        recalculated_checksum = sha256(seed_val).digest()[:1]
         is_valid_checksum = checksum == recalculated_checksum
 
         return is_valid_checksum

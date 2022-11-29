@@ -4,16 +4,13 @@ build-backend = "hatchling.build"
 
 [project]
 name = "bitcoinshamir"
-version = "00.00.06"
+version = "00.00.08"
 authors = [
     { name="Tyler Pantuso", email="tylerpantuso@gmail.com" },
 ]
 description = "A python implementation of the Shamir Secret Sharing scheme for BIP39 mnemonic phrases."
 readme = "README.md"
 requires-python = ">3.10"
-dependencies = [
-    "hashlib",
-]
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",

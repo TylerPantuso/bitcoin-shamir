@@ -86,7 +86,7 @@ class Mnemonic:
 
         # The seed is the first 256 bits. The checksum is the last 8 bits.
         seed_val = int(bin_text[:256], base=2).to_bytes(32, "big")
-        checksum = int(bin_text[256:8], base=2).to_bytes(1, "big")
+        checksum = int(bin_text[256:264], base=2).to_bytes(1, "big")
 
         # The checksum is the first byte of the sha256 hash of the prior 32
         # bytes.

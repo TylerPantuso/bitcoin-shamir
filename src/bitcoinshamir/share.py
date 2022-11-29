@@ -82,14 +82,14 @@ class Share:
         y_val = int(bin_text[:240], base=2)
 
         # The original seedphrase checksum is the next 8 bits.
-        seed_checksum = int(bin_text[240:8], base=2).to_bytes(1, "big")
+        seed_checksum = int(bin_text[240:248], base=2).to_bytes(1, "big")
 
         # The threshold and X value are the next 8 bits. These values still have
         # an xor of the final checksum applied, which will need to be removed.
-        threshold_x_xor = int(bin_text[248:8]).to_bytes(1, "big")
+        threshold_x_xor = int(bin_text[248:256]).to_bytes(1, "big")
 
         # The final checksum is the last 8 bits.
-        hash_byte = int(bin_text[256:8], base=2).to_bytes(1, "big")
+        hash_byte = int(bin_text[256:264], base=2).to_bytes(1, "big")
 
         # Remove xor from threshold and X value
         threshold_x = threshold_x_xor ^ hash_byte
@@ -101,7 +101,7 @@ class Share:
         
         # The last 5 bits are the X value. The X value starts with a value of 1,
         # encoded as 0, so the X value is 1 plus the encoded value.
-        x_val = int(threshold_x_bin_text[3:5], base=2) + 1
+        x_val = int(threshold_x_bin_text[3:8], base=2) + 1
 
         return cls(seed_checksum, x_val, y_val, threshold)
 

@@ -23,9 +23,9 @@ class Polynomial:
             else:
                 components.append(f"{coefficient}")
 
-        expression = " ".join(components)
+        expression = " +\n".join(components)
 
-        return f"Polynomial(): {expression}"
+        return f"Polynomial():\n{expression}"
 
 
     def solve(self, x: int, modulus: int) -> int:
@@ -38,4 +38,4 @@ class Polynomial:
         for i, coefficient in enumerate(self.coefficients):
             result += coefficient * x ** i % modulus
         
-        return result
+        return result % modulus

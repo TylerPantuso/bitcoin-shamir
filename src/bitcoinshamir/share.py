@@ -17,6 +17,9 @@ class Share:
     checksum. The final 8 bits is the share's checksum of all 256 bits preceding
     it, which is the first 8 bits of the sha256 hash.
 
+    11 * 24 = 264 (Current phrase length)
+    11 * 32 = 352 (Considered phrase length)
+
     [240: Y value]
     [8: Seed checksum]
     [3: Threshold xor checksum]

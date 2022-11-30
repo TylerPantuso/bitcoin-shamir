@@ -4,12 +4,16 @@ from typing import List
 from .point import Point
 from .polynomial import Polynomial
 
+# TODO: Check all places where random keys are generated, and check for 0
+# values.
+
 # The field size is a prime number that should be near the max value of the
 # secret key. The BIP39 24-word seed phrase creates the largest seed phrase,
 # which is 256 bits, plus an 8-bit checksum.
 PRIME_MODULUS = 2 ** 256 - 2 ** 32 - 977
 
-
+# TODO: Have this return a list of Share objects and switch the key with a
+# Mnemonic class
 def create_shares(threshold: int, sharecount: int, key: bytes) -> List[Point]:
     """
     Splits a secret key into a (k, n) threshold scheme according to the Shamir
@@ -38,7 +42,7 @@ def create_shares(threshold: int, sharecount: int, key: bytes) -> List[Point]:
 
     return shares
 
-
+# TODO: Make a recover_mnemonic function.
 def recover_key(shares: List[Point]) -> bytes:
     """
     Takes a list of Point objects, and uses Lagrange interpolation to find the

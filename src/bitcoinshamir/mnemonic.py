@@ -1,6 +1,7 @@
 from .BIP39_List import BIP39_List
 from hashlib import sha256
 from typing import List
+import os
 
 wordlist = BIP39_List()
 
@@ -23,6 +24,19 @@ class Mnemonic:
             self.checksum = bytes(1)
         else:
             raise ValueError(f"{language} not in the current language list.")
+
+
+    @classmethod
+    def generate_random(cls, language: str) -> "Mnemonic":
+        """
+        Generates and returns a new random seed using os.urandom(), which is
+        suitable for cryptographic use.
+        """
+        mnemonic = cls(language)
+        mnemonic.seed = os.urandom(32)
+        mnemonic.checksum = sha256(mnemonic.seed).digest()[:1]
+
+        return mnemonic
 
 
     def set_word(self, index: int, word: str) -> None:
@@ -61,6 +75,33 @@ class Mnemonic:
             new_seed_word_section = new_seed_bin[:32]
             checksum = sha256(new_seed_word_section)[:1]
             new_seed_bin = new_seed_word_section + checksum
+
+
+    def get_word(self, index: int) -> str:
+        """
+        Returns the word at the given zero-based index of this Mnemonic class
+        instance. Raises error if the index is not between 0 and 23.
+        """
+        if not isinstance(index, int):
+            raise TypeError("The index argument given is not an int.")
+
+        if index < 0 or index > 23:
+            raise IndexError("The index argument given is out of bounds.")
+
+        # Convert the seed into binary text.
+        seed_num = int.from_bytes(self.seed, "big")
+        seed_bin_text = format(seed_num, "0264b")
+
+        # Get binary text of the requested index. Each word is 11 bits.
+        start_index = index * 11
+        end_index = (index + 1) * 11
+        word_bin_text = seed_bin_text[start_index:end_index]
+
+        # Convert to word.
+        word_index = int(word_bin_text, base=2)
+        word = wordlist.get_word(word_index, self.language)
+
+        return word
 
 
     def is_valid_phrase(phrase: List[str], language: str) -> bool:

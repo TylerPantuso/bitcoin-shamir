@@ -18,7 +18,7 @@ class Share:
     it, which is the first 8 bits of the sha256 hash.
 
     11 * 24 = 264 (Current phrase length)
-    11 * 32 = 352 (Considered phrase length)
+    11 * 28 = 308 (Considered phrase length)
 
     [240: Y value]
     [8: Seed checksum]

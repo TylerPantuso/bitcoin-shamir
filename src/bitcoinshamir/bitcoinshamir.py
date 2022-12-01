@@ -2,18 +2,20 @@ import os
 import lagrange
 from typing import List
 from .point import Point
+from .share import Share
+from .mnemonic import Mnemonic
 from .polynomial import Polynomial
 
-# TODO: Check all places where random keys are generated, and check for 0
-# values.
+# TODO: Check all places where random keys are generated and raise error if the
+# key = 0.
 
-# The field size is a prime number that should be near the max value of the
-# secret key. The BIP39 24-word seed phrase creates the largest seed phrase,
-# which is 256 bits, plus an 8-bit checksum.
+# The field size should be a prime number that is larger than the max value of
+# the secret key (256 bits).
 PRIME_MODULUS = 2 ** 256 - 2 ** 32 - 977
 
 # TODO: Have this return a list of Share objects and switch the key with a
-# Mnemonic class
+# Mnemonic class. Remove the creation of a polynomial. Generate random y-values
+# and use interpolation to find remaining shares.
 def create_shares(threshold: int, sharecount: int, key: bytes) -> List[Point]:
     """
     Splits a secret key into a (k, n) threshold scheme according to the Shamir
@@ -42,7 +44,7 @@ def create_shares(threshold: int, sharecount: int, key: bytes) -> List[Point]:
 
     return shares
 
-# TODO: Make a recover_mnemonic function.
+
 def recover_key(shares: List[Point]) -> bytes:
     """
     Takes a list of Point objects, and uses Lagrange interpolation to find the
@@ -55,6 +57,12 @@ def recover_key(shares: List[Point]) -> bytes:
     key_bin = key_int.to_bytes(32, "big")
 
     return key_bin
+
+# TODO: Make a recover_mnemonic function.
+def recover_mnemonic(shares: List[Share]) -> Mnemonic:
+    # Validate Shares.
+    # Recover mnemonic seed with Lagrange interpolation.
+    pass
 
 
 def interpolate(points: List[Point], modulus: int, X: int) -> int:

@@ -23,6 +23,7 @@ class Decode:
         # The decoded threshold starts at 2.
         return decoded_threshold + 2
 
+
     @staticmethod
     def share_version(encoded_version: int) -> int:
         """

@@ -1,3 +1,4 @@
+from .exceptions import ChecksumError, ThresholdError, LanguageError
 from .BIP39_List import BIP39_List
 from .encode import Encode
 from .decode import Decode
@@ -10,43 +11,35 @@ current_version = 0
 
 class Share:
     """
-    TODO: Update this paragraph with the new 297-bit share.
-
     Share class for holding a single share of a Shamir (k of n) threshold
     scheme. Each share is a coordinate, with an (x, y) value, where x is an
-    integer, greater than 0. The secret key is assumed to be the y value at
-    x = 0. One share has 264 bits total, represented as 24 words. Each word is
-    11 bits. The first 240 bits encode the Y value of the share. The next 8 bits
-    are the original seed's checksum. The next 3 bits are the threshold starting
-    at 2, xor the first 3 bits of the share's final checksum. The next 5 bits
-    are the X value starting at 1, xor the last 5 bits of the share's final
-    checksum. The final 8 bits is the share's checksum of all 256 bits preceding
-    it, which is the first 8 bits of the sha256 hash.
+    integer, greater than 1. The secret key is the y value at x = 0. A checksum
+    of the key is the value at x = 1. Share values start at x = 2.
 
-    11 * 24 = 264 (Current phrase length)
-    11 * 27 = 297 (Considered phrase length)
+    One share is 37 bytes, represented as 27 words. Each word is 11 bits. The
+    297th bit from the last word is truncated. The first 32 bytes encode the
+    y value of the share. The next byte is the original seed's checksum. The
+    next 2 bytes hold  the version, threshold, and x value of the share. The
+    version is 5 bits, starting with a value of 0; the threshold is 4 bits,
+    starting at 2; and the x value is 7 bits, starting at 2. The last 2 bytes
+    are a checksum of the share. Finally, the share checksum is applied as an
+    xor to the prior 2-bytes containing the version, threshold, and x value in
+    order to avoid long sequences of zeros.
 
-    Share with 264 bits
-    [240: Y value] 24 remain
-    [8: Seed checksum] 16 remain
-    [3: Threshold xor checksum] 13 remain
-    [5: X value xor checksum] 8 remain
-    [8: Checksum] 0 remain
-
-    Share with 297 bits
-    [256: Y value] 41 remain
-    [8: Seed checksum] 33 remain
-    [5: Version xor checksum] 28 remain
-    [4: Threshold xor checksum] 24 remain
-    [7: X value xor checksum] 17 remain
-    [16: Checksum] 1 remains (ignore)
+    296-bit share structure:
+    [256: Y value]
+    [8: Seed checksum]
+    [5: Version xor checksum]
+    [4: Threshold xor checksum]
+    [7: X value xor checksum]
+    [16: Checksum]
     """
     def __init__(
-            self, seed_checksum: bytes, X: int, Y: int, threshold: int,
+            self, X: int, Y: int, threshold: int, seed_checksum: bytes,
             version: int = current_version) -> None:
         """
         Initializes an instance of the Share class, and assignes values for the
-        (x, y) values, as well as the version, threshold, and checksums. The
+        (x, y) coordinate, as well as the version, threshold, and checksums. The
         threshold must be between [2, 17]. The X value must be between [2, 257].
         """
         if not isinstance(threshold, int):
@@ -69,19 +62,14 @@ class Share:
         encoded_version = Encode.share_version(version)
         encoded_threshold = Encode.share_threshold(threshold)
         encoded_x = Encode.share_X(X)
+        
+        # Get the share checksum, which is the last two bytes of the fully
+        # encoded share.
+        share_bytes = Encode.share_bytes(
+                encoded_x, Y, encoded_threshold, seed_checksum[:1], version
+            )
 
-        version_threshold_x = encoded_version + encoded_threshold + encoded_x
-        version_threshold_x_bin = version_threshold_x.to_bytes(2, "big")
-
-        # Determine the share checksum, which is the first two bytes of the
-        # sha256 hash of all previous bytes.
-        share_bytes_before_checksum = [
-            Y.to_bytes(32, "big"),
-            seed_checksum[:1],
-            version_threshold_x_bin
-        ]
-
-        share_checksum = sha256(b"".join(share_bytes_before_checksum))[:2]
+        share_checksum = share_bytes[-2:]
 
         # Assign instance variables.
         self.seed_checksum = seed_checksum[:1]
@@ -163,37 +151,15 @@ class Share:
         """
         # The version, threshold, and X-value are encoded in the same 2-byte
         # sequence.
-        version_int = Encode.share_version(self.version)
-        threshold_int = Encode.share_threshold(self.threshold)
-        x_int = Encode.share_X(self.X)
+        version = Encode.share_version(self.version)
+        threshold = Encode.share_threshold(self.threshold)
+        x_val = Encode.share_X(self.X)
+
+        share_bytes = Encode.share_bytes(
+                x_val, self.Y, threshold, self.seed_checksum, version
+            )
         
-        version_threshold_x_int = version_int + threshold_int + x_int
-        version_threshold_x_bin = version_threshold_x_int.to_bytes(2, "big")
-
-        # The share checksum is the first two bytes of the sha256 hash of all
-        # previous bytes.
-        share_bytes_before_checksum = [
-            self.Y.to_bytes(32, "big"),
-            self.seed_checksum,
-            version_threshold_x_bin
-        ]
-
-        share_checksum = sha256(b"".join(share_bytes_before_checksum))[:2]
-        share_checksum_int = int.from_bytes(share_checksum, "big")
-
-        # The version, threshold, and X-value are applied an xor from the
-        # share's checksum in order to avoid having too many repeating zeros.
-        version_threshold_x_xor = version_threshold_x_int ^ share_checksum_int
-
-        # Join and return the share bytes.
-        share_bytes = [
-            self.Y.to_bytes(32, "big"),
-            self.seed_checksum,
-            version_threshold_x_xor.to_bytes(2, "big"),
-            share_checksum
-        ]
-
-        return b"".join(share_bytes)
+        return share_bytes
 
     
     def get_word(self, index: int, language: str) -> str:
@@ -215,36 +181,28 @@ class Share:
         version_int = Encode.share_version(self.version)
         threshold_int = Encode.share_threshold(self.threshold)
         x_int = Encode.share_X(self.X)
+
+        share_bytes = Encode.share_bytes(
+                x_int, self.Y, threshold_int, self.seed_checksum, version_int
+            )
         
+        # Rehash the share to get the extra bit for the 27th word.
         version_threshold_x_int = version_int + threshold_int + x_int
         version_threshold_x_bin = version_threshold_x_int.to_bytes(2, "big")
 
-        # The share checksum is the first two bytes of the sha256 hash of all
-        # previous bytes.
         share_bytes_before_checksum = [
             self.Y.to_bytes(32, "big"),
             self.seed_checksum,
             version_threshold_x_bin
         ]
 
-        # 3 bytes will be used for the checksum in order to get the extra bit
-        # at the end of the share bytes. The one bit comes from the difference
-        # between a share having 11-bit words and the share bytes having 8-bit
-        # bytes.
-        share_checksum = sha256(b"".join(share_bytes_before_checksum))[:3]
-        share_checksum_int = int.from_bytes(share_checksum[:2], "big")
+        third_checksum_byte = sha256(b"".join(share_bytes_before_checksum))[2:3]
 
-        # The version, threshold, and X-value are applied an xor from the
-        # share's checksum in order to avoid having too many repeating zeros.
-        version_threshold_x_xor = version_threshold_x_int ^ share_checksum_int
-
-        # Join the share bytes and remove 7 bits from the last byte of the
+        # Join the share bytes and remove 7 bits from the third byte of the
         # share checksum.
         share_byte_array = [
-            self.Y.to_bytes(32, "big"),
-            self.seed_checksum,
-            version_threshold_x_xor.to_bytes(2, "big"),
-            share_checksum
+            share_bytes,
+            third_checksum_byte
         ]
 
         share_bin = b"".join(share_byte_array)

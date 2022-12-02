@@ -76,3 +76,29 @@ class Encode:
         ]
 
         return b"".join(share_bytes)
+
+
+    @staticmethod
+    def mnemonic_bytes(mnemonic_int: int) -> bytes:
+        """
+        Returns the bytes of a Mnemonic based on the given int representation.
+        """
+        return mnemonic_int.to_bytes(33, "big")
+
+
+    @staticmethod
+    def mnemonic_seed(mnemonic_int: int) -> bytes:
+        """
+        Returns the first 32 bytes of the Mnemonic based on the given int
+        representation.
+        """
+        return mnemonic_int.to_bytes(33, "big")[32:]
+
+
+    @staticmethod
+    def mnemonic_checksum(mnemonic_int: int) -> bytes:
+        """
+        Returns the last bytes of a Mnemonic based on the given int
+        representation.
+        """
+        return mnemonic_int.to_bytes(33, "big")[-1:]

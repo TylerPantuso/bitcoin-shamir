@@ -1,4 +1,7 @@
+from .exceptions import LanguageError, WordlistError
 from .BIP39_List import BIP39_List
+from .encode import Encode
+from .decode import Decode
 from hashlib import sha256
 from typing import List
 import os
@@ -7,74 +10,85 @@ wordlist = BIP39_List()
 
 class Mnemonic:
     """
-    Mnemonic class for holding a BIP44 seed phrase. The 24 words represent 264
-    bits. The first 256 bits are 24 words from a BIP39 word list. The final 8
-    bits represent a checksum, which is the first 8 bits of the sha256 hash of
-    the first 260 bits of the mnemonic.
+    Mnemonic class for holding a 24-word BIP44 seed phrase. The Mnemonic holds
+    33 bytes. The first 32 bytes are the seed. The last byte is a checksum.
     """
     def __init__(self, language: str) -> None:
         """
-        Initializes a new instance of the Mnemonic class, and sets the language
-        attribute. Raises a ValueError if the language is not in the current
-        list of languages.
+        Initializes a new instance of the Mnemonic class, and sets the language.
         """
         if language in BIP39_List.LANGUAGE_LIST:
             self.language = language
             self.seed = bytes(32)
             self.checksum = bytes(1)
         else:
-            raise ValueError(f"{language} not in the current language list.")
+            raise LanguageError(language)
 
 
     @classmethod
     def generate_random(cls, language: str) -> "Mnemonic":
         """
-        Generates and returns a new random seed using os.urandom(), which is
-        suitable for cryptographic use.
+        Generates and returns a random mnemonic phrase using os.urandom(), which
+        is suitable for cryptographic use.
         """
-        mnemonic = cls(language)
-        mnemonic.seed = os.urandom(32)
-        mnemonic.checksum = sha256(mnemonic.seed).digest()[:1]
+        if language in BIP39_List.LANGUAGE_LIST:
+            mnemonic = cls(language)
+            mnemonic.seed = os.urandom(32)
+            mnemonic.checksum = sha256(mnemonic.seed).digest()[:1]
+        else:
+            raise LanguageError(language)
 
         return mnemonic
 
 
-    def set_word(self, index: int, word: str) -> None:
+    def set_word(self, phrase_index: int, word: str) -> None:
         """
         Sets a word in this Mnemonic class instance according to the zero-based
         array and word given. Raises errors if the index is out of range or the
         language is not in the current list of languages.
         """
-        if not isinstance(index, int):
+        if not isinstance(phrase_index, int):
             raise TypeError("The index argument given is not an int.")
 
-        if index < 0 or index > 23:
+        if phrase_index < 0 or phrase_index > 23:
             raise IndexError("The index argument given is out of bounds.")
 
         if self.language not in wordlist.get_language(word):
-            raise ValueError(f"{word} not found in {self.language} list.")
+            raise WordlistError(word, self.language)
 
-        # Convert the seed into binary text.
-        seed_num = int.from_bytes(self.seed, "big")
-        seed_bin_text = format(seed_num, "0264b")
+        # Create a deleting bitmask based on the word's position in the phrase.
+        max_words = 24
+        word_position = phrase_index + 1
+        word_count_right_side = max_words - word_position
 
-        # Switch out the bits for the given word argument.
-        word_index = wordlist.get_word_index(word, self.language)
-        word_bin_text = format(word_index, "011b")
-        char_count_left = index * 11 - 1
-        char_right_position = (index + 1) * 11
+        word_delete_bitmask = 2 ** 264 - 1
+        word_delete_bitmask ^= 0b1111_1111_111 << (word_count_right_side * 11)
 
-        bin_text_left = seed_bin_text[:char_count_left]
-        bin_text_right = seed_bin_text[char_right_position:]
-        new_seed_bin_text = bin_text_left + word_bin_text + bin_text_right
-        new_seed_bin = int(new_seed_bin_text, base=2).to_bytes(33, "big")
+        # Delete the current bits at the given word index.
+        mnemonic_int = Decode.mnemonic_int(self.seed, self.checksum)
+        mnemonic_int &= word_delete_bitmask
+
+        # Set the word bits at the given word index.
+        word_bits = wordlist.get_word_index(word, self.language)
+        mnemonic_int |= word_bits << (word_count_right_side * 11)
 
         # Recalculate the checksum if the last word, which contains the
         # checksum, is not the word being set.
-        if index != 23:
-            new_seed_word_section = new_seed_bin[:32]
-            checksum = sha256(new_seed_word_section)[:1]
-            new_seed_bin = new_seed_word_section + checksum
+        if phrase_index != 23:
+            # Get the hash of the first 32 bytes.
+            seed_int = mnemonic_int >> 8
+            seed_bin = seed_int.to_bytes(32, "big")
+            checksum_bin = sha256(seed_bin).digest()[:1]
+            checksum_int = int.from_bytes(checksum_bin, "big")
+            
+            # Delete last byte and replace with the checksum.
+            mnemonic_int >>= 8
+            mnemonic_int <<= 8
+            mnemonic_int &= checksum_int
+            
+        # Update class instance variables
+        self.seed = Encode.mnemonic_seed(mnemonic_int)
+        self.checksum = Encode.mnemonic_checksum(mnemonic_int)
 
 
     def get_word(self, index: int) -> str:
@@ -88,50 +102,53 @@ class Mnemonic:
         if index < 0 or index > 23:
             raise IndexError("The index argument given is out of bounds.")
 
-        # Convert the seed into binary text.
-        seed_num = int.from_bytes(self.seed, "big")
-        seed_bin_text = format(seed_num, "0264b")
+        # Determine number of bits to truncate from the right based the word's
+        # position in the phrase.
+        max_words = 24
+        word_position = index + 1
+        word_count_right_side = max_words - word_position
 
-        # Get binary text of the requested index. Each word is 11 bits.
-        start_index = index * 11
-        end_index = (index + 1) * 11
-        word_bin_text = seed_bin_text[start_index:end_index]
+        mnemonic_int = Decode.mnemonic_int(self.seed, self.checksum)
+        truncated_mnemonic_int = mnemonic_int >> (word_count_right_side * 11)
 
-        # Convert to word.
-        word_index = int(word_bin_text, base=2)
+        # Get word index and return word text.
+        word_bitmask = 0b1111_1111_111
+        word_index = truncated_mnemonic_int & word_bitmask
         word = wordlist.get_word(word_index, self.language)
 
         return word
 
 
-    def is_valid_phrase(phrase: List[str], language: str) -> bool:
+    def validate_phrase(phrase: List[str], language: str) -> bool:
         """
         Returns true if the given mnemonic phrase has words that exist in the
         given language's word list, and the checksum is valid. Raises error if
         the language given is not in the current language list.
         """
         if language not in BIP39_List.LANGUAGE_LIST:
-            raise ValueError(f"{language} not in the current language list.")
+            raise LanguageError(language)
 
-        is_valid_wordcount = len(phrase) == 24
-        has_valid_words = all(
-            [language in wordlist.get_language(word) for word in phrase]
-            )
+        if len(phrase) != 24:
+            raise ValueError("Phrase does not have 24 words")
 
-        if not is_valid_wordcount or not has_valid_words:
-            return False
+        for word in phrase:
+            if language not in wordlist.get_language(word):
+                raise WordlistError(word, language)
 
+        # Add words from left to right, shifting the added words to the left by
+        # 11 bits each iteration.
         indices = [wordlist.get_word_index(word, language) for word in phrase]
-        bin_text_chunks = [format(index, "011b") for index in indices]
-        bin_text = "".join(bin_text_chunks)
+        mnemonic_int = 0
 
-        # The seed is the first 256 bits. The checksum is the last 8 bits.
-        seed_val = int(bin_text[:256], base=2).to_bytes(32, "big")
-        checksum = int(bin_text[256:264], base=2).to_bytes(1, "big")
+        for word_index in indices:
+            mnemonic_int <<= 11
+            mnemonic_int += word_index
 
-        # The checksum is the first byte of the sha256 hash of the prior 32
-        # bytes.
-        recalculated_checksum = sha256(seed_val).digest()[:1]
-        is_valid_checksum = checksum == recalculated_checksum
+        # Validate checksum.
+        given_phrase_seed = Encode.mnemonic_seed(mnemonic_int)
+        given_phrase_checksum = Encode.mnemonic_checksum(mnemonic_int)
+        recalculated_checksum = sha256(given_phrase_seed).digest()[:1]
+        
+        is_valid_checksum = given_phrase_checksum == recalculated_checksum
 
         return is_valid_checksum

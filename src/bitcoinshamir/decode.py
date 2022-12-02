@@ -34,3 +34,12 @@ class Decode:
         # number is the first item encoded in a 2-byte sequence, followed by the
         # threshold and the X-value.
         return encoded_version >> 11
+
+
+    @staticmethod
+    def mnemonic_int(seed: bytes, checksum: bytes) -> int:
+        """
+        Returns the integer representation of a Mnemonic class instance.
+        """
+        return int.from_bytes(seed + checksum, "big")
+

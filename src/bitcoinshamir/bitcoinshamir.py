@@ -1,46 +1,83 @@
 import os
 import lagrange
 from typing import List
+from .exceptions import ChecksumError, ThresholdError
+from .enums import Checksum
 from .point import Point
 from .share import Share
+from .encode import Encode
+from .decode import Decode
+from .lagrange import Lagrange
 from .mnemonic import Mnemonic
 from .polynomial import Polynomial
 
-# TODO: Check all places where random keys are generated and raise error if the
-# key = 0.
 
 # The field size should be a prime number that is larger than the max value of
 # the secret key (256 bits).
 PRIME_MODULUS = 2 ** 256 - 2 ** 32 - 977
 
-# TODO: Have this return a list of Share objects and switch the key with a
-# Mnemonic class. Remove the creation of a polynomial. Generate random y-values
-# and use interpolation to find remaining shares.
-def create_shares(threshold: int, sharecount: int, key: bytes) -> List[Point]:
+
+def create_shares(
+        threshold: int, sharecount: int, mnemonic: Mnemonic
+        ) -> List[Share]:
     """
-    Splits a secret key into a (k, n) threshold scheme according to the Shamir
-    Secret Sharing (SSS) system. The secret key can be recovered with any
+    Splits a 24-word BIP39 mnemonic into a (k, n) threshold scheme, based on the
+    Shamir Secret Sharing (SSS) system. The secret key can be recovered with any
     combination of k number of shares, but no information is revealed about the
     secret key, even with k - 1 shares.
     """
-    # Create a polynomial of k - 1 degrees and set the x^0 coefficient to the
-    # secret key.
-    key_num = int.from_bytes(key, "big")
-    polynomial = Polynomial(key_num)
+    if not isinstance(threshold, int):
+        raise TypeError("The threshold argument was not of the int type.")
 
-    # Add random 240-bit coefficients.
-    for i in range(threshold - 1):
-        random_coefficient = int.from_bytes(os.urandom(32), "big")
-        polynomial.coefficients.append(random_coefficient)
+    if threshold < 2 or threshold > 17:
+        raise ValueError("The given index argument is out of bounds.")
 
-    # Create shares based on x = 1, x = 2, ..., x = (k - 1)
+    if not isinstance(sharecount, int):
+        raise TypeError("The sharecount argument was not of the int type.")
+
+    if sharecount < threshold or sharecount > 256:
+        raise ValueError("The given sharecount argument is out of bounds.")
+
+    # f(x=0) is the key value.
+    key_num = Decode.mnemonic_key(mnemonic.seed)
+    key_point = Point(0, key_num)
+    
+    # f(x=1) is the key hash.
+    key_hash = Encode.mnemonic_hash(key_num)
+    hash_num = int.from_bytes(key_hash, "big")
+    hash_point = Point(1, hash_num)
+
+    # All f(x>1) are the share values.
     shares = []
 
-    for i in range(sharecount):
-        point = Point()
-        point.X = i + 1
-        point.Y = polynomial.solve(point.X, PRIME_MODULUS)
-        shares.append(point)
+    # Generate 2 fewer shares with random X-values than the threshold, because
+    # the key value at x=0 and the hash at x=1 are already determined.
+    random_share_count = threshold - 2
+
+    for i in range(random_share_count):
+        # The X-value for random shares start at x=2.
+        x_val = i + 2
+        random_val = int.from_bytes(os.urandom(32), "big")
+
+        point = Point(x_val, random_val)
+        share = Share(point, threshold, mnemonic.checksum)
+        shares.append(share)
+
+    # Calculate the remaining shares using Lagrange interpolation.
+    base_points = []
+    base_points.append(key_point)
+    base_points.append(hash_point)
+    base_points.extend([share.point for share in shares])
+    
+    calculated_share_count = sharecount - random_share_count
+
+    for i in range(calculated_share_count):
+        x_val = i + random_share_count + 2
+        y_val = Lagrange.interpolate(base_points, PRIME_MODULUS, x_val)
+        
+        point = Point(x_val, y_val)
+        share = Share(point, threshold, mnemonic.checksum)
+        shares.append(share)
 
     return shares
 
@@ -58,55 +95,43 @@ def recover_key(shares: List[Point]) -> bytes:
 
     return key_bin
 
-# TODO: Make a recover_mnemonic function.
+
 def recover_mnemonic(shares: List[Share]) -> Mnemonic:
-    # Validate Shares.
+    """
+    Calculates and returns a Mnemonic object based on the given Share objects.
+    Raises an error if the shares are not valid.
+    """
+    if not isinstance(shares, list):
+        raise TypeError("The given shares argument was not a list object.")
+
+    first_seed_checksum = shares[0].seed_checksum
+
+    for share in shares:
+        if not isinstance(share, Share):
+            message = "The shares argument was not of the type List[Share]."
+            raise TypeError(message)
+        
+        if share.seed_checksum != first_seed_checksum:
+            raise ChecksumError(
+                Checksum.ShareGroup, first_seed_checksum, share.seed_checksum
+            )
+
+    if len(shares) < shares[0].threshold:
+        raise ThresholdError(shares[0].threshold, len(shares))
+
     # Recover mnemonic seed with Lagrange interpolation.
-    pass
+    share_points = [share.point for share in shares]
 
+    orignal_key = Lagrange.interpolate(share_points, PRIME_MODULUS, 0)
+    original_hash_int = Lagrange.interpolate(share_points, PRIME_MODULUS, 1)
+    original_hash = original_hash_int.to_bytes(32, "big")
+    recalculated_hash = Encode.mnemonic_hash(orignal_key)
 
-def interpolate(points: List[Point], modulus: int, X: int) -> int:
-    """
-    Gets the X-value using Lagrange interpolation according to the given list of
-    points, over the finite field of the given modulus. Raises an error if the
-    modulus is less than 3 or if the given Point objects do not have int values.
-    """
-    # Validate the given arguments.
-    if not isinstance(modulus, int):
-        raise TypeError("The given modulus was not of the int type.")
+    if original_hash != recalculated_hash:
+        raise ChecksumError(
+            Checksum.KeyValue, original_hash, recalculated_hash
+        )
 
-    if modulus < 3:
-        raise ValueError("The given modulus was not a positive prime number.")
-
-    if not isinstance(points, list):
-        raise TypeError("The given points argument was not of type list.")
-
-    if len(points) < 2:
-        raise ValueError(f"Only {len(points)} given. At least two required.")
-    else:
-        for point in points:
-            if not isinstance(point.X, int) or not isinstance(point.Y, int):
-                raise TypeError("The given point values are not of type int.")
-            elif point.X < 0 or point.Y < 0:
-                raise ValueError(f"({point.X}, {point.Y}) has negative value.")
-
-    # This will be the return value.
-    cumulative_sum = 0
-
-    # Sum loop.
-    for point_a in points:
-        cumulative_product = point_a.Y
-
-        # Product loop.
-        for point_b in [p for p in points if p is not point_a]:
-            numerator = (X - point_b.X) % modulus
-            denominator = (point_a.X - point_b.X) % modulus
-
-            # Multiplicitive inverse using Fermat's little theorem.
-            mul_inv = pow(denominator, modulus - 2, modulus)
-            product = numerator * mul_inv % modulus
-            cumulative_product = cumulative_product * product % modulus
-
-        cumulative_sum = (cumulative_sum + cumulative_product) % modulus
-
-    return cumulative_sum
+    mnemonic = Mnemonic()
+    mnemonic.seed = orignal_key
+    mnemonic.checksum = original_hash[:1]

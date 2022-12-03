@@ -1,5 +1,7 @@
 import os
 from typing import List
+from .enums import Language
+from .exceptions import WordlistError
 
 class BIP39_List:
     """
@@ -67,7 +69,7 @@ class BIP39_List:
             self.Spanish = [line.strip() for line in f.readlines()]
 
 
-    def get_language(self, word: str) -> List[str]:
+    def get_language(self, word: str) -> List[Language]:
         """
         Searches each word list for the given word and returns the string name
         of each language that contains the given word. If the word is not
@@ -76,75 +78,72 @@ class BIP39_List:
         languages = []
 
         if word in self.ChineseSimplified:
-            languages.append("chinese_simplified")
+            languages.append(Language.ChineseSimplified)
 
         if word in self.ChineseTraditional:
-            languages.append("chinese_traditional")
+            languages.append(Language.ChineseTraditional)
 
         if word in self.Czech:
-            languages.append("czech")
+            languages.append(Language.Czech)
 
         if word in self.English:
-            languages.append("english")
+            languages.append(Language.English)
 
         if word in self.French:
-            languages.append("french")
+            languages.append(Language.French)
 
         if word in self.Italian:
-            languages.append("italian")
+            languages.append(Language.Italian)
 
         if word in self.Japanese:
-            languages.append("japanese")
+            languages.append(Language.Japanese)
 
         if word in self.Korean:
-            languages.append("korean")
+            languages.append(Language.Korean)
 
         if word in self.Portuguese:
-            languages.append("portuguese")
+            languages.append(Language.Portuguese)
 
         if word in self.Spanish:
-            languages.append("spanish")
+            languages.append(Language.Spanish)
 
         return languages
 
 
-    def get_word_list(self, language: str) -> List[str]:
+    def get_word_list(self, language: Language) -> List[str]:
         """
-        Returns the word list based on the given language. Raises an error if
-        the given language is not in the current language list.
+        Returns the word list based on the given language.
         """
-        if language == "chinese_simplified":
+        if language == Language.ChineseSimplified:
             return self.ChineseSimplified
-        elif language == "chinese_traditional":
+        elif language == Language.ChineseTraditional:
             return self.ChineseTraditional
-        elif language == "czech":
+        elif language == Language.Czech:
             return self.Czech
-        elif language == "english":
+        elif language == Language.English:
             return self.English
-        elif language == "french":
+        elif language == Language.French:
             return self.French
-        elif language == "italian":
+        elif language == Language.Italian:
             return self.Italian
-        elif language == "japanese":
+        elif language == Language.Japanese:
             return self.Japanese
-        elif language == "korean":
+        elif language == Language.Korean:
             return self.Korean
-        elif language == "portuguese":
+        elif language == Language.Portuguese:
             return self.Portuguese
-        elif language == "spanish":
+        elif language == Language.Spanish:
             return self.Spanish
         else:
-            raise ValueError(f"{language} is not in the current language list.")
+            raise ValueError(f"{language} is not in the language list.")
 
 
-    def get_word(self, index: str, language: int) -> str:
+    def get_word(self, index: str, language: Language) -> str:
         """
-        Gets the word based on the given language and zero-based index of the
-        word. Raises an error if the language is not in the current language
-        list or if the index is out of bounds.
+        Gets the word based on the given index and language.
         """
-        if language not in self.LANGUAGE_LIST:
-            raise ValueError(f"{language} is not in the current language list.")
+        if not isinstance(language, Language):
+            raise ValueError(f"{language} is not in the language list.")
 
         if not isinstance(index, int):
             raise TypeError("The given index argument was not of type int.")
@@ -155,17 +154,15 @@ class BIP39_List:
         return self.get_word_list(language)[index]
 
 
-    def get_word_index(self, word: str, language: str) -> int:
+    def get_word_index(self, word: str, language: Language) -> int:
         """
-        Gets the index of the given word from the given language. Raises an
-        error if the language is not in the current language list or if the word
-        does not exist within the given language's word list.
+        Gets the index of the given word from the given language.
         """
-        if language not in self.LANGUAGE_LIST:
-            raise ValueError(f"{language} is not in the current language list.")
+        if not isinstance(language, Language):
+            raise ValueError(f"{language} is not in the language list.")
 
         if language not in self.get_language(word):
-            raise ValueError(f"{word} not in the {language} word list.")
+            raise WordlistError(word, language)
 
         return self.get_word_list(language).index(word)
         

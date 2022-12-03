@@ -43,3 +43,11 @@ class Decode:
         """
         return int.from_bytes(seed + checksum, "big")
 
+
+    @staticmethod
+    def mnemonic_key(seed_or_full_mnemonic: bytes) -> int:
+        """
+        Returns the integer key of a Mnemonic class instance.
+        """
+        key_bytes = seed_or_full_mnemonic[:32]
+        return int.from_bytes(key_bytes, "big")

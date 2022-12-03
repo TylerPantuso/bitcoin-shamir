@@ -1,10 +1,14 @@
-from .exceptions import ChecksumError, ThresholdError, LanguageError
+from .exceptions import *
 from .BIP39_List import BIP39_List
 from .encode import Encode
 from .decode import Decode
+from .point import Point
+from .enums import Language
 from typing import List
 from hashlib import sha256
 
+
+PRIME_MODULUS = 2 ** 256 - 2 ** 32 - 977
 wordlist = BIP39_List()
 current_version = 0
 
@@ -35,7 +39,7 @@ class Share:
     [16: Checksum]
     """
     def __init__(
-            self, X: int, Y: int, threshold: int, seed_checksum: bytes,
+            self, point: Point, threshold: int, seed_checksum: bytes,
             version: int = current_version) -> None:
         """
         Initializes an instance of the Share class, and assignes values for the
@@ -48,11 +52,20 @@ class Share:
         if threshold < 2 or threshold > 17:
             raise ValueError("The given index argument is out of bounds.")
 
-        if not isinstance(X, int):
+        if not isinstance(point, int):
+            raise TypeError("The given point argument is not of type Point.")
+
+        if not isinstance(point.X, int):
             raise TypeError("The given X argument is not of type int.")
 
-        if X < 2 or X > 257:
+        if point.X < 2 or point.X > 257:
             raise ValueError("The given X argument is out of bounds.")
+
+        if not isinstance(point.Y, int):
+            raise TypeError("The given Y argument is not of type int.")
+
+        if point.Y < 1 or point.Y >= PRIME_MODULUS:
+            raise ValueError("The given Y argument is out of bounds.")
         
         if len(seed_checksum) < 1:
             raise ValueError("The given seed_checksum was not at least 1 byte.")
@@ -61,35 +74,37 @@ class Share:
         # X-value in order to get the share's checksum.
         encoded_version = Encode.share_version(version)
         encoded_threshold = Encode.share_threshold(threshold)
-        encoded_x = Encode.share_X(X)
+        encoded_x = Encode.share_X(point.X)
         
         # Get the share checksum, which is the last two bytes of the fully
         # encoded share.
         share_bytes = Encode.share_bytes(
-                encoded_x, Y, encoded_threshold, seed_checksum[:1], version
+                encoded_x, point.Y, encoded_threshold, seed_checksum[:1],
+                encoded_version
             )
 
         share_checksum = share_bytes[-2:]
 
         # Assign instance variables.
         self.seed_checksum = seed_checksum[:1]
-        self.X = X
-        self.Y = Y
+        self.point = point
         self.threshold = threshold
         self.version = version
         self.share_checksum = share_checksum
     
 
     @classmethod
-    def from_share_phrase(cls, phrase: List[str], language: str) -> "Share":
+    def from_share_phrase(
+            cls, phrase: List[str], language: Language
+            ) -> "Share":
         """
         Returns an instance of a Share class according to the given share
         phrase. Raises an error if the language is not in the current language
         list, the mnemonic phrase has invalid words, or has the wrong number of
         words.
         """
-        if language not in BIP39_List.LANGUAGE_LIST:
-            raise ValueError(f"{language} not in the current language list.")
+        if not isinstance(language, Language):
+            raise ValueError(f"{language} is not in the language list.")
 
         if not isinstance(phrase, list):
             raise TypeError("The given phrase was not of the list[str] type.")
@@ -99,7 +114,7 @@ class Share:
 
         for word in phrase:
             if language not in wordlist.get_language(word):
-                raise ValueError(f"\"{word}\" not in {language} word list.")
+                raise WordlistError(word, language)
 
         indices = [wordlist.get_word_index(word, language) for word in phrase]
         
@@ -111,8 +126,8 @@ class Share:
             share_int <<= 11
             share_int += word_index
         
-        # Remove the last bit because a 27-word phrase has an extra bit that
-        # should be ignored.
+        # Remove the last bit. A 27-word phrase has an extra bit that spills
+        # over the 37 bytes that should be ignored.
         share_int >>= 1
 
         # Truncate the right 40 bits to get the Y-value of the share. The
@@ -126,7 +141,7 @@ class Share:
         # The next 2 bytes are version, threshold, and X-value.
         version_threshold_x_val = (share_int & 0xFF_FF_00_00) >> 16
 
-        # The final 2 bytes is the share checksum.
+        # The final 2 bytes are the share checksum.
         share_checksum_int = share_int & 0xFF_FF
 
         # The version, threshold, and X-value are encoded with an xor of the
@@ -142,7 +157,9 @@ class Share:
         threshold_int = Decode.share_threshold(threshold_encoded)
         x_int = Decode.share_X(x_val_encoded)
 
-        return cls(seed_checksum_bin, x_int, y_int, threshold_int, version_int)
+        point = Point(x_int, y_int)
+
+        return cls(point, threshold_int, seed_checksum_bin, version_int)
 
 
     def to_bytes(self) -> bytes:
@@ -151,18 +168,19 @@ class Share:
         """
         # The version, threshold, and X-value are encoded in the same 2-byte
         # sequence.
-        version = Encode.share_version(self.version)
-        threshold = Encode.share_threshold(self.threshold)
-        x_val = Encode.share_X(self.X)
+        encoded_version = Encode.share_version(self.version)
+        encoded_threshold = Encode.share_threshold(self.threshold)
+        encoded_x = Encode.share_X(self.point.X)
 
         share_bytes = Encode.share_bytes(
-                x_val, self.Y, threshold, self.seed_checksum, version
+                encoded_x, self.point.Y, encoded_threshold, self.seed_checksum,
+                encoded_version
             )
         
         return share_bytes
 
     
-    def get_word(self, index: int, language: str) -> str:
+    def get_word(self, index: int, language: Language) -> str:
         """
         Returns the word at the given zero-based index of this Share class
         instance. Raises error if the index is not between 0 and 26.
@@ -173,8 +191,8 @@ class Share:
         if index < 0 or index > 26:
             raise IndexError("The index argument given is out of bounds.")
             
-        if language not in BIP39_List.LANGUAGE_LIST:
-            raise ValueError(f"{language} not in the current language list.")
+        if not isinstance(language, Language):
+            raise ValueError(f"{language} is not in the language list.")
 
         # The version, threshold, and X-value are encoded in the same 2-byte
         # sequence.
@@ -222,6 +240,13 @@ class Share:
         word = wordlist.get_word(word_index, language)
 
         return word
+
+
+    # def copy(self) -> "Share":
+    #     """
+    #     Returns a copy of the Share object.
+    #     """
+    #     return Share(self.point.copy(), self.threshold, self.seed_checksum, self.version)
 
 
     def is_valid(self) -> bool:

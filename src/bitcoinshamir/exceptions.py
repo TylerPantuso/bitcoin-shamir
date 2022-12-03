@@ -1,13 +1,23 @@
+from .enums import Checksum, Language
+
 class ChecksumError(Exception):
     """
     Exception raised when a checksum is invalid.
     """
-    def __init__(self, *args: object) -> None:
+    def __init__(self, checksum_type: Checksum, first_checksum: bytes,
+            second_checksum: bytes, *args: object) -> None:
         super().__init__(*args)
+        self.checksum_type = checksum_type
+        self.first_checksum = first_checksum
+        self.second_checksum = second_checksum
 
 
     def __str__(self) -> str:
-        return super().__str__()
+        message = "The {0} values did not match\n1:\t{1}\n2:\t{2}"
+
+        return message.format(
+            self.checksum_type.value, self.first_checksum, self.second_checksum
+        )
 
 
 class ThresholdError(Exception):
@@ -29,7 +39,7 @@ class LanguageError(Exception):
     """
     Exception raised when a word or language is not found.
     """
-    def __init__(self, language: str, *args: object) -> None:
+    def __init__(self, language: Language, *args: object) -> None:
         super().__init__(*args)
         self.language = language
 
@@ -42,7 +52,7 @@ class WordlistError(Exception):
     """
     Exception raised when a word is not found in a BIP39 word list.
     """
-    def __init__(self, word: str, language: str, *args: object) -> None:
+    def __init__(self, word: str, language: Language, *args: object) -> None:
         super().__init__(*args)
         self.word = word
         self.language = language

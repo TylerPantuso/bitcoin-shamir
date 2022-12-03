@@ -1,5 +1,6 @@
 from .exceptions import LanguageError, WordlistError
 from .BIP39_List import BIP39_List
+from .enums import Language
 from .encode import Encode
 from .decode import Decode
 from hashlib import sha256
@@ -13,35 +14,30 @@ class Mnemonic:
     Mnemonic class for holding a 24-word BIP44 seed phrase. The Mnemonic holds
     33 bytes. The first 32 bytes are the seed. The last byte is a checksum.
     """
-    def __init__(self, language: str) -> None:
+    def __init__(self) -> None:
         """
-        Initializes a new instance of the Mnemonic class, and sets the language.
+        Initializes a new instance of the Mnemonic class.
         """
-        if language in BIP39_List.LANGUAGE_LIST:
-            self.language = language
-            self.seed = bytes(32)
-            self.checksum = bytes(1)
-        else:
-            raise LanguageError(language)
+        self.seed = bytes(32)
+        self.checksum = bytes(1)
 
 
     @classmethod
-    def generate_random(cls, language: str) -> "Mnemonic":
+    def generate_random(cls) -> "Mnemonic":
         """
         Generates and returns a random mnemonic phrase using os.urandom(), which
         is suitable for cryptographic use.
         """
-        if language in BIP39_List.LANGUAGE_LIST:
-            mnemonic = cls(language)
-            mnemonic.seed = os.urandom(32)
-            mnemonic.checksum = sha256(mnemonic.seed).digest()[:1]
-        else:
-            raise LanguageError(language)
+        mnemonic = cls()
+        mnemonic.seed = os.urandom(32)
+        mnemonic.checksum = sha256(mnemonic.seed).digest()[:1]
 
         return mnemonic
 
 
-    def set_word(self, phrase_index: int, word: str) -> None:
+    def set_word(
+            self, phrase_index: int, word: str, language: Language
+            ) -> None:
         """
         Sets a word in this Mnemonic class instance according to the zero-based
         array and word given. Raises errors if the index is out of range or the
@@ -53,8 +49,8 @@ class Mnemonic:
         if phrase_index < 0 or phrase_index > 23:
             raise IndexError("The index argument given is out of bounds.")
 
-        if self.language not in wordlist.get_language(word):
-            raise WordlistError(word, self.language)
+        if not isinstance(language, Language):
+            raise TypeError("The language argument was not a Language enum.")
 
         # Create a deleting bitmask based on the word's position in the phrase.
         max_words = 24
@@ -69,7 +65,7 @@ class Mnemonic:
         mnemonic_int &= word_delete_bitmask
 
         # Set the word bits at the given word index.
-        word_bits = wordlist.get_word_index(word, self.language)
+        word_bits = wordlist.get_word_index(word, language)
         mnemonic_int |= word_bits << (word_count_right_side * 11)
 
         # Recalculate the checksum if the last word, which contains the
@@ -114,19 +110,19 @@ class Mnemonic:
         # Get word index and return word text.
         word_bitmask = 0b1111_1111_111
         word_index = truncated_mnemonic_int & word_bitmask
-        word = wordlist.get_word(word_index, self.language)
+        word = wordlist.get_word(word_index, Language)
 
         return word
 
 
-    def validate_phrase(phrase: List[str], language: str) -> bool:
+    def validate_phrase(phrase: List[str], language: Language) -> bool:
         """
         Returns true if the given mnemonic phrase has words that exist in the
         given language's word list, and the checksum is valid. Raises error if
         the language given is not in the current language list.
         """
-        if language not in BIP39_List.LANGUAGE_LIST:
-            raise LanguageError(language)
+        if not isinstance(language, Language):
+            raise ValueError(f"{language} is not in the language list.")
 
         if len(phrase) != 24:
             raise ValueError("Phrase does not have 24 words")

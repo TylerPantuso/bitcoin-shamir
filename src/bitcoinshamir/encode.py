@@ -92,7 +92,7 @@ class Encode:
         Returns the first 32 bytes of the Mnemonic based on the given int
         representation.
         """
-        return mnemonic_int.to_bytes(33, "big")[32:]
+        return mnemonic_int.to_bytes(33, "big")[:32]
 
 
     @staticmethod
@@ -102,3 +102,12 @@ class Encode:
         representation.
         """
         return mnemonic_int.to_bytes(33, "big")[-1:]
+
+
+    @staticmethod
+    def mnemonic_hash(key_int: int) -> bytes:
+        """
+        Returns the full sha256 hash of a Mnemonic class instance.
+        """
+        key_bytes = key_int.to_bytes(32, "big")
+        return sha256(key_bytes).digest()

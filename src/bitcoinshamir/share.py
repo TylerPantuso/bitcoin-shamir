@@ -52,7 +52,7 @@ class Share:
         if threshold < 2 or threshold > 17:
             raise ValueError("The given index argument is out of bounds.")
 
-        if not isinstance(point, int):
+        if not isinstance(point, Point):
             raise TypeError("The given point argument is not of type Point.")
 
         if not isinstance(point.X, int):

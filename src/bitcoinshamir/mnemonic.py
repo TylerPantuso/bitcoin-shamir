@@ -87,11 +87,14 @@ class Mnemonic:
         self.checksum = Encode.mnemonic_checksum(mnemonic_int)
 
 
-    def get_word(self, index: int) -> str:
+    def get_word(self, index: int, language: Language) -> str:
         """
         Returns the word at the given zero-based index of this Mnemonic class
         instance. Raises error if the index is not between 0 and 23.
         """
+        if not isinstance(language, Language):
+            raise ValueError(f"{language} is not in the language list.")
+            
         if not isinstance(index, int):
             raise TypeError("The index argument given is not an int.")
 
@@ -110,7 +113,7 @@ class Mnemonic:
         # Get word index and return word text.
         word_bitmask = 0b1111_1111_111
         word_index = truncated_mnemonic_int & word_bitmask
-        word = wordlist.get_word(word_index, Language)
+        word = wordlist.get_word(word_index, language)
 
         return word
 

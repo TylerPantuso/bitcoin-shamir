@@ -38,34 +38,34 @@ class BIP39_List:
         portuguese_path = os.path.join(folder, "portuguese.txt")
         spanish_path = os.path.join(folder, "spanish.txt")
 
-        with open(chinese_simp_path, "r") as f:
+        with open(chinese_simp_path, "r", encoding="utf-8") as f:
             self.ChineseSimplified = [line.strip() for line in f.readlines()]
 
-        with open(chinese_trad_path, "r") as f:
+        with open(chinese_trad_path, "r", encoding="utf-8") as f:
             self.ChineseTraditional = [line.strip() for line in f.readlines()]
 
-        with open(czech_path, "r") as f:
+        with open(czech_path, "r", encoding="utf-8") as f:
             self.Czech = [line.strip() for line in f.readlines()]
 
-        with open(english_path, "r") as f:
+        with open(english_path, "r", encoding="utf-8") as f:
             self.English = [line.strip() for line in f.readlines()]
 
-        with open(french_path, "r") as f:
+        with open(french_path, "r", encoding="utf-8") as f:
             self.French = [line.strip() for line in f.readlines()]
 
-        with open(italian_path, "r") as f:
+        with open(italian_path, "r", encoding="utf-8") as f:
             self.Italian = [line.strip() for line in f.readlines()]
 
-        with open(japanese_path, "r") as f:
+        with open(japanese_path, "r", encoding="utf-8") as f:
             self.Japanese = [line.strip() for line in f.readlines()]
 
-        with open(korean_path, "r") as f:
+        with open(korean_path, "r", encoding="utf-8") as f:
             self.Korean = [line.strip() for line in f.readlines()]
 
-        with open(portuguese_path, "r") as f:
+        with open(portuguese_path, "r", encoding="utf-8") as f:
             self.Portuguese = [line.strip() for line in f.readlines()]
 
-        with open(spanish_path, "r") as f:
+        with open(spanish_path, "r", encoding="utf-8") as f:
             self.Spanish = [line.strip() for line in f.readlines()]
 
 

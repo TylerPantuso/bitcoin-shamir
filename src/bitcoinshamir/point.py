@@ -15,10 +15,3 @@ class Point:
         Returns a string representation of this Point class instance.
         """
         return f"Point({self.X}, {self.Y})"
-
-
-    # def copy(self):
-    #     """
-    #     Returns a copy of the Point object.
-    #     """
-    #     return Point(self.X, self.Y)

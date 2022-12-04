@@ -240,14 +240,3 @@ class Share:
         word = wordlist.get_word(word_index, language)
 
         return word
-
-
-    # def copy(self) -> "Share":
-    #     """
-    #     Returns a copy of the Share object.
-    #     """
-    #     return Share(self.point.copy(), self.threshold, self.seed_checksum, self.version)
-
-
-    def is_valid(self) -> bool:
-        pass

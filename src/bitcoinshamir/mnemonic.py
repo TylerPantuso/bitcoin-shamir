@@ -151,7 +151,7 @@ class Mnemonic:
             # Delete last byte and replace with the checksum.
             mnemonic_int >>= 8
             mnemonic_int <<= 8
-            mnemonic_int &= checksum_int
+            mnemonic_int += checksum_int
             
         # Update class instance variables
         self.seed = Encode.mnemonic_seed(mnemonic_int)

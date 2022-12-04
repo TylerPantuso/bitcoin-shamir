@@ -1,5 +1,4 @@
 import os
-import lagrange
 from typing import List
 from .exceptions import ChecksumError, ThresholdError
 from .enums import Checksum, Language
@@ -9,7 +8,6 @@ from .encode import Encode
 from .decode import Decode
 from .lagrange import Lagrange
 from .mnemonic import Mnemonic
-from .polynomial import Polynomial
 
 
 # The field size should be a prime number that is larger than the max value of

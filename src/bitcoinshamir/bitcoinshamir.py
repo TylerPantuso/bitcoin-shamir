@@ -119,7 +119,7 @@ def recover_mnemonic(shares: List[Share]) -> Mnemonic:
         )
 
     mnemonic = Mnemonic()
-    mnemonic.seed = orignal_key
+    mnemonic.seed = orignal_key.to_bytes(32, "big")
     mnemonic.checksum = original_hash[:1]
 
     return mnemonic

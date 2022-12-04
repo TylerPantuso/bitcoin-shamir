@@ -198,18 +198,18 @@ class Share:
         # sequence.
         version_int = Encode.share_version(self.version)
         threshold_int = Encode.share_threshold(self.threshold)
-        x_int = Encode.share_X(self.X)
+        x_int = Encode.share_X(self.point.X)
 
         share_bytes = Encode.share_bytes(
-                x_int, self.Y, threshold_int, self.seed_checksum, version_int
-            )
+            x_int, self.point.Y, threshold_int, self.seed_checksum, version_int
+        )
         
         # Rehash the share to get the extra bit for the 27th word.
         version_threshold_x_int = version_int + threshold_int + x_int
         version_threshold_x_bin = version_threshold_x_int.to_bytes(2, "big")
 
         share_bytes_before_checksum = [
-            self.Y.to_bytes(32, "big"),
+            self.point.Y.to_bytes(32, "big"),
             self.seed_checksum,
             version_threshold_x_bin
         ]

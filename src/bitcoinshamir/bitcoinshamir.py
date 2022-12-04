@@ -82,20 +82,6 @@ def create_shares(
     return shares
 
 
-def recover_key(shares: List[Point]) -> bytes:
-    """
-    Takes a list of Point objects, and uses Lagrange interpolation to find the
-    Y-intercept, which is the secret key. If incorrect or too few Point objects
-    are provided, an incorrect result will be returned. There is no error
-    checking.
-    """
-    point_list = [(share.X, share.Y) for share in shares]
-    key_int = lagrange.interpolate(point_list, PRIME_MODULUS)
-    key_bin = key_int.to_bytes(32, "big")
-
-    return key_bin
-
-
 def recover_mnemonic(shares: List[Share]) -> Mnemonic:
     """
     Calculates and returns a Mnemonic object based on the given Share objects.

@@ -79,9 +79,9 @@ class Share:
         # Get the share checksum, which is the last two bytes of the fully
         # encoded share.
         share_bytes = Encode.share_bytes(
-                encoded_x, point.Y, encoded_threshold, seed_checksum[:1],
-                encoded_version
-            )
+            encoded_x, point.Y, encoded_threshold, seed_checksum[:1],
+            encoded_version
+        )
 
         share_checksum = share_bytes[-2:]
 
@@ -208,19 +208,19 @@ class Share:
         version_threshold_x_int = version_int + threshold_int + x_int
         version_threshold_x_bin = version_threshold_x_int.to_bytes(2, "big")
 
-        share_bytes_before_checksum = [
+        bytes_before_checksum = [
             self.point.Y.to_bytes(32, "big"),
             self.seed_checksum,
             version_threshold_x_bin
         ]
 
-        third_checksum_byte = sha256(b"".join(share_bytes_before_checksum))[2:3]
+        extra_byte = sha256(b"".join(bytes_before_checksum)).digest()[2:3]
 
         # Join the share bytes and remove 7 bits from the third byte of the
         # share checksum.
         share_byte_array = [
             share_bytes,
-            third_checksum_byte
+            extra_byte
         ]
 
         share_bin = b"".join(share_byte_array)

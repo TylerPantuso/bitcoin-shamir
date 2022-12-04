@@ -2,7 +2,7 @@ import os
 import lagrange
 from typing import List
 from .exceptions import ChecksumError, ThresholdError
-from .enums import Checksum
+from .enums import Checksum, Language
 from .point import Point
 from .share import Share
 from .encode import Encode
@@ -121,3 +121,22 @@ def recover_mnemonic(shares: List[Share]) -> Mnemonic:
     mnemonic = Mnemonic()
     mnemonic.seed = orignal_key
     mnemonic.checksum = original_hash[:1]
+
+    return mnemonic
+
+
+def get_phrase(
+        mnemonic_or_share: Mnemonic | Share, language: Language
+        ) -> List[str]:
+    """
+    Returns a list of words represending a mnemonic phrase or a share phrase,
+    based on the type of the given object.
+    """
+    if isinstance(mnemonic_or_share, Mnemonic):
+        return [mnemonic_or_share.get_word(i, language) for i in range(24)]
+    elif isinstance(mnemonic_or_share, Share):
+        return [mnemonic_or_share.get_word(i, language) for i in range(27)]
+    else:
+        message = "The given mnemonic_or_share argument was not of the type \
+            Mnemonic or Share."
+        raise TypeError(message)

@@ -1,4 +1,4 @@
-from .exceptions import LanguageError, WordlistError
+from .exceptions import ChecksumError, LanguageError, WordlistError
 from .BIP39_List import BIP39_List
 from .enums import Language
 from .encode import Encode
@@ -25,14 +25,85 @@ class Mnemonic:
     @classmethod
     def generate_random(cls) -> "Mnemonic":
         """
-        Generates and returns a random mnemonic phrase using os.urandom(), which
-        is suitable for cryptographic use.
+        Generates and returns a random mnemonic phrase using the os.urandom()
+        method, which is suitable for cryptographic use.
         """
         mnemonic = cls()
         mnemonic.seed = os.urandom(32)
         mnemonic.checksum = sha256(mnemonic.seed).digest()[:1]
 
         return mnemonic
+
+
+    @classmethod
+    def from_bytes(cls, key: bytes) -> "Mnemonic":
+        """
+        Returns a Mnemonic class instance based on the given seed bytes. If a
+        checksum is given, it is validated; otherwise, a checksum will be added
+        to it.
+        """
+        if not isinstance(key, bytes):
+            raise TypeError("The given key argument was not of a bytes type.")
+
+        if len(key) < 32:
+            message = "32 bytes for key argument required. {0} received."
+            raise ValueError(message.format(len(key)))
+        elif len(key) == 32:
+            checksum = sha256(key[:32])[:1]
+            key += checksum
+        elif len(key) == 33:
+            given_checksum = key[-1:]
+            recalculated_checksum = sha256(key[:32])[:1]
+
+            is_valid_checksum = given_checksum == recalculated_checksum
+
+            if not is_valid_checksum:
+                raise ChecksumError(given_checksum, recalculated_checksum)
+        else:
+            message = "The key argument should be 32-33 bytes. {0} received."
+            raise ValueError(message.format(len(key)))
+
+        mnemonic = cls()
+        mnemonic.seed = key[:32]
+        mnemonic.checksum = key[-1:]
+
+        return mnemonic
+
+
+    @staticmethod
+    def validate_phrase(phrase: List[str], language: Language) -> bool:
+        """
+        Returns true if the given mnemonic phrase has words that exist in the
+        given language's word list, and the checksum is valid. Raises error if
+        the language given is not in the current language list.
+        """
+        if not isinstance(language, Language):
+            raise ValueError(f"{language} is not in the language list.")
+
+        if len(phrase) != 24:
+            raise ValueError("Phrase does not have 24 words")
+
+        for word in phrase:
+            if language not in wordlist.get_language(word):
+                raise WordlistError(word, language)
+
+        # Add words from left to right, shifting the added words to the left by
+        # 11 bits each iteration.
+        indices = [wordlist.get_word_index(word, language) for word in phrase]
+        mnemonic_int = 0
+
+        for word_index in indices:
+            mnemonic_int <<= 11
+            mnemonic_int += word_index
+
+        # Validate checksum.
+        given_phrase_seed = Encode.mnemonic_seed(mnemonic_int)
+        given_phrase_checksum = Encode.mnemonic_checksum(mnemonic_int)
+        recalculated_checksum = sha256(given_phrase_seed).digest()[:1]
+        
+        is_valid_checksum = given_phrase_checksum == recalculated_checksum
+
+        return is_valid_checksum
 
 
     def set_word(
@@ -94,7 +165,7 @@ class Mnemonic:
         """
         if not isinstance(language, Language):
             raise ValueError(f"{language} is not in the language list.")
-            
+
         if not isinstance(index, int):
             raise TypeError("The index argument given is not an int.")
 
@@ -116,38 +187,3 @@ class Mnemonic:
         word = wordlist.get_word(word_index, language)
 
         return word
-
-
-    def validate_phrase(phrase: List[str], language: Language) -> bool:
-        """
-        Returns true if the given mnemonic phrase has words that exist in the
-        given language's word list, and the checksum is valid. Raises error if
-        the language given is not in the current language list.
-        """
-        if not isinstance(language, Language):
-            raise ValueError(f"{language} is not in the language list.")
-
-        if len(phrase) != 24:
-            raise ValueError("Phrase does not have 24 words")
-
-        for word in phrase:
-            if language not in wordlist.get_language(word):
-                raise WordlistError(word, language)
-
-        # Add words from left to right, shifting the added words to the left by
-        # 11 bits each iteration.
-        indices = [wordlist.get_word_index(word, language) for word in phrase]
-        mnemonic_int = 0
-
-        for word_index in indices:
-            mnemonic_int <<= 11
-            mnemonic_int += word_index
-
-        # Validate checksum.
-        given_phrase_seed = Encode.mnemonic_seed(mnemonic_int)
-        given_phrase_checksum = Encode.mnemonic_checksum(mnemonic_int)
-        recalculated_checksum = sha256(given_phrase_seed).digest()[:1]
-        
-        is_valid_checksum = given_phrase_checksum == recalculated_checksum
-
-        return is_valid_checksum

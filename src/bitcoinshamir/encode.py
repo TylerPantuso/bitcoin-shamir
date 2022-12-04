@@ -1,4 +1,6 @@
+from .exceptions import ChecksumError
 from hashlib import sha256
+
 
 class Encode:
     @staticmethod
@@ -78,12 +80,22 @@ class Encode:
         return b"".join(share_bytes)
 
 
+    # TODO: Check if these methods works when the first byte is \x00. Maybe the
+    # user should get a warning.
     @staticmethod
     def mnemonic_bytes(mnemonic_int: int) -> bytes:
         """
         Returns the bytes of a Mnemonic based on the given int representation.
         """
-        return mnemonic_int.to_bytes(33, "big")
+        mnemonic_bytes = mnemonic_int.to_bytes(33, "big")
+        seed = mnemonic_bytes[:-1]
+        checksum = mnemonic_bytes[-1:]
+        calculated_checksum = sha256(seed).digest()[:1]
+
+        if checksum != calculated_checksum:
+            raise ChecksumError(checksum, calculated_checksum)
+            
+        return mnemonic_bytes
 
 
     @staticmethod
@@ -92,16 +104,32 @@ class Encode:
         Returns the first 32 bytes of the Mnemonic based on the given int
         representation.
         """
-        return mnemonic_int.to_bytes(33, "big")[:32]
+        mnemonic_bytes = mnemonic_int.to_bytes(33, "big")
+        seed = mnemonic_bytes[:-1]
+        checksum = mnemonic_bytes[-1:]
+        calculated_checksum = sha256(seed).digest()[:1]
+
+        if checksum != calculated_checksum:
+            raise ChecksumError(checksum, calculated_checksum)
+
+        return seed
 
 
     @staticmethod
     def mnemonic_checksum(mnemonic_int: int) -> bytes:
         """
-        Returns the last bytes of a Mnemonic based on the given int
+        Returns the last byte of a Mnemonic based on the given int
         representation.
         """
-        return mnemonic_int.to_bytes(33, "big")[-1:]
+        mnemonic_bytes = mnemonic_int.to_bytes(33, "big")
+        seed = mnemonic_bytes[:-1]
+        checksum = mnemonic_bytes[-1:]
+        calculated_checksum = sha256(seed).digest()[:1]
+
+        if checksum != calculated_checksum:
+            raise ChecksumError(checksum, calculated_checksum)
+
+        return checksum
 
 
     @staticmethod

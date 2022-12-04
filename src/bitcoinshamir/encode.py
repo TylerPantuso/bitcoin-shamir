@@ -57,13 +57,13 @@ class Encode:
 
         # The share checksum is the first two bytes of the sha256 hash of all
         # previous bytes.
-        share_bytes_before_checksum = [
+        bytes_before_checksum = [
             encoded_Y.to_bytes(32, "big"),
             seed_checksum,
             version_threshold_x_bin
         ]
 
-        share_checksum = sha256(b"".join(share_bytes_before_checksum))[:2]
+        share_checksum = sha256(b"".join(bytes_before_checksum)).digest()[:2]
         share_checksum_int = int.from_bytes(share_checksum, "big")
 
         # Xor the share cheksum to the version, threshold, and X-value.
@@ -80,8 +80,6 @@ class Encode:
         return b"".join(share_bytes)
 
 
-    # TODO: Check if these methods works when the first byte is \x00. Maybe the
-    # user should get a warning.
     @staticmethod
     def mnemonic_bytes(mnemonic_int: int) -> bytes:
         """
